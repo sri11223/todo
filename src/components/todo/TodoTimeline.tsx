@@ -209,6 +209,18 @@ function TimelineItem({
         {todo.text}
       </span>
 
+      {/* Priority Badge */}
+      {todo.priority && todo.priority !== 'none' && (
+        <span className={`
+          px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider
+          ${todo.priority === 'high' ? 'bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400' : ''}
+          ${todo.priority === 'medium' ? 'bg-amber-50 text-amber-500 dark:bg-amber-500/10 dark:text-amber-400' : ''}
+          ${todo.priority === 'low' ? 'bg-blue-50 text-blue-500 dark:bg-blue-500/10 dark:text-blue-400' : ''}
+        `}>
+          {todo.priority}
+        </span>
+      )}
+
       {/* Created time */}
       <span className="text-[10px] text-gray-300 dark:text-gray-600 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
         {new Date(todo.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}

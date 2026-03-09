@@ -1,11 +1,21 @@
 import { useState, useRef, useCallback, type KeyboardEvent } from 'react';
 import { MAX_TODO_LENGTH } from '@/constants';
 import { DatePicker } from '@/components/ui/DatePicker';
+import type { Priority } from '@/types';
+
+// ─── Priority Config ─────────────────────────────────────────────────────────
+
+const PRIORITY_OPTIONS: { value: Priority; label: string; color: string; dot: string }[] = [
+  { value: 'none', label: 'None', color: 'text-gray-400', dot: 'bg-gray-300' },
+  { value: 'low', label: 'Low', color: 'text-blue-500', dot: 'bg-blue-400' },
+  { value: 'medium', label: 'Med', color: 'text-amber-500', dot: 'bg-amber-400' },
+  { value: 'high', label: 'High', color: 'text-red-500', dot: 'bg-red-500' },
+];
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
 interface TodoInputProps {
-  onAdd: (text: string, dueDate: string | null) => void;
+  onAdd: (text: string, dueDate: string | null, priority: Priority) => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -13,9 +23,12 @@ interface TodoInputProps {
 export function TodoInput({ onAdd }: TodoInputProps) {
   const [text, setText] = useState('');
   const [dueDate, setDueDate] = useState<string | null>(null);
+  const [priority, setPriority] = useState<Priority>('none');
   const [error, setError] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [showPriority, setShowPriority] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const priorityBtnRef = useRef<HTMLDivElement>(null);
 
   const validate = (value: string): string | null => {
     if (!value.trim()) return 'Please enter a task';
@@ -29,12 +42,13 @@ export function TodoInput({ onAdd }: TodoInputProps) {
       setError(validationError);
       return;
     }
-    onAdd(text, dueDate);
+    onAdd(text, dueDate, priority);
     setText('');
     setDueDate(null);
+    setPriority('none');
     setError('');
     inputRef.current?.focus();
-  }, [text, dueDate, onAdd]);
+  }, [text, dueDate, priority, onAdd]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -49,6 +63,8 @@ export function TodoInput({ onAdd }: TodoInputProps) {
     },
     [handleSubmit]
   );
+
+  const currentPriority = PRIORITY_OPTIONS.find((p) => p.value === priority) ?? PRIORITY_OPTIONS[0];
 
   return (
     <div className="space-y-2">
@@ -105,6 +121,56 @@ export function TodoInput({ onAdd }: TodoInputProps) {
           </span>
         )}
 
+        {/* Priority Selector */}
+        <div className="relative" ref={priorityBtnRef}>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowPriority(!showPriority); }}
+            className={`
+              inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold
+              transition-all duration-150
+              ${priority !== 'none'
+                ? `${currentPriority.color} bg-gray-50 dark:bg-gray-800/60`
+                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/40'
+              }
+            `}
+            title="Set priority"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+            </svg>
+            {priority !== 'none' && <span>{currentPriority.label}</span>}
+          </button>
+          {showPriority && (
+            <div className="absolute right-0 bottom-full mb-2 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-1.5 z-50 min-w-[120px] animate-fade-in">
+              <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Priority</div>
+              {PRIORITY_OPTIONS.map((p) => (
+                <button
+                  key={p.value}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPriority(p.value);
+                    setShowPriority(false);
+                  }}
+                  className={`
+                    w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium
+                    hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors
+                    ${priority === p.value ? 'bg-gray-50 dark:bg-gray-800' : ''}
+                  `}
+                >
+                  <span className={`w-2 h-2 rounded-full ${p.dot}`} />
+                  <span className={p.color}>{p.label}</span>
+                  {priority === p.value && (
+                    <svg className="w-3 h-3 ml-auto text-primary-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Date Picker */}
         <DatePicker value={dueDate} onChange={setDueDate} placeholder="Due date" />
 
@@ -127,6 +193,18 @@ export function TodoInput({ onAdd }: TodoInputProps) {
           Add Task
         </button>
       </div>
+
+      {/* Active selections indicator */}
+      {(dueDate || priority !== 'none') && (
+        <div className="flex items-center gap-2 ml-3 animate-fade-in">
+          {priority !== 'none' && (
+            <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${currentPriority.color}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${currentPriority.dot}`} />
+              {currentPriority.label} priority
+            </span>
+          )}
+        </div>
+      )}
 
       {error && (
         <p className="text-xs text-red-500 dark:text-red-400 ml-3 animate-fade-in flex items-center gap-1">

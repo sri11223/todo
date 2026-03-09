@@ -1,11 +1,11 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
 interface DatePickerProps {
-  value: string | null;      // 'YYYY-MM-DD' or null
+  value: string | null;
   onChange: (date: string | null) => void;
-  minDate?: string;          // earliest selectable date
   placeholder?: string;
 }
 
@@ -43,8 +43,6 @@ function formatDisplayDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00');
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
   const diff = d.getTime() - today.getTime();
   const daysDiff = Math.floor(diff / (1000 * 60 * 60 * 24));
 
@@ -54,7 +52,11 @@ function formatDisplayDate(dateStr: string): string {
   if (daysDiff > 1 && daysDiff <= 6) {
     return d.toLocaleDateString('en-US', { weekday: 'long' });
   }
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
+  });
 }
 
 export function getRelativeDateLabel(dateStr: string | null): { label: string; color: string } {
@@ -73,7 +75,7 @@ export function getRelativeDateLabel(dateStr: string | null): { label: string; c
   return { label: formatDisplayDate(dateStr), color: 'text-gray-500 dark:text-gray-400' };
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Component (Portal-based for z-index safety) ────────────────────────────
 
 export function DatePicker({ value, onChange, placeholder = 'Set due date' }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -81,19 +83,57 @@ export function DatePicker({ value, onChange, placeholder = 'Set due date' }: Da
   const initial = value ? parseDate(value) : { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
   const [viewYear, setViewYear] = useState(initial.year);
   const [viewMonth, setViewMonth] = useState(initial.month);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
 
-  // Close on click outside
+  // ── Reposition dropdown to be near the trigger ──
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
+    if (!isOpen || !triggerRef.current) return;
+
+    const updatePos = () => {
+      const rect = triggerRef.current!.getBoundingClientRect();
+      const dropW = 288;
+      const dropH = 400;
+      let top = rect.bottom + 6;
+      let left = rect.right - dropW;
+
+      if (left < 8) left = 8;
+      if (left + dropW > window.innerWidth - 8) left = window.innerWidth - dropW - 8;
+      if (top + dropH > window.innerHeight - 8) {
+        top = rect.top - dropH - 6;
       }
+      setPos({ top, left });
+    };
+
+    updatePos();
+    window.addEventListener('scroll', updatePos, true);
+    window.addEventListener('resize', updatePos);
+    return () => {
+      window.removeEventListener('scroll', updatePos, true);
+      window.removeEventListener('resize', updatePos);
+    };
+  }, [isOpen]);
+
+  // ── Close on outside click ──
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleClick(e: MouseEvent) {
+      const target = e.target as Node;
+      const inTrigger = triggerRef.current?.contains(target);
+      const inDropdown = dropdownRef.current?.contains(target);
+      if (!inTrigger && !inDropdown) setIsOpen(false);
     }
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClick);
-      return () => document.removeEventListener('mousedown', handleClick);
-    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [isOpen]);
+
+  // ── Close on Escape ──
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsOpen(false); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
   }, [isOpen]);
 
   const daysInMonth = useMemo(() => getDaysInMonth(viewYear, viewMonth), [viewYear, viewMonth]);
@@ -114,8 +154,7 @@ export function DatePicker({ value, onChange, placeholder = 'Set due date' }: Da
   }, []);
 
   const selectDate = useCallback((day: number) => {
-    const dateStr = toDateStr(viewYear, viewMonth, day);
-    onChange(dateStr);
+    onChange(toDateStr(viewYear, viewMonth, day));
     setIsOpen(false);
   }, [viewYear, viewMonth, onChange]);
 
@@ -138,42 +177,15 @@ export function DatePicker({ value, onChange, placeholder = 'Set due date' }: Da
 
   const dateInfo = value ? getRelativeDateLabel(value) : null;
 
-  return (
-    <div ref={containerRef} className="relative">
-      {/* Trigger Button */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`
-          inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium
-          transition-all duration-200
-          ${value
-            ? `${dateInfo?.color} bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-800`
-            : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60'
-          }
-        `}
-      >
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-        {value ? dateInfo?.label : placeholder}
-        {value && (
-          <button
-            onClick={clearDate}
-            className="ml-0.5 p-0.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            aria-label="Clear date"
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        )}
-      </button>
-
-      {/* Calendar Dropdown */}
-      {isOpen && (
-        <div className="absolute z-50 mt-2 left-0 sm:left-auto sm:right-0 animate-fade-in">
-          <div className="w-72 glass-strong rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/40 border border-gray-200/60 dark:border-gray-700/50 p-3">
+  // ── Calendar rendered via portal so it's never clipped ──
+  const calendarDropdown = isOpen
+    ? createPortal(
+        <div
+          ref={dropdownRef}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 99999 }}
+          className="animate-fade-in"
+        >
+          <div className="w-72 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/60 border border-gray-200 dark:border-gray-700 p-3 select-none">
             {/* Quick Select */}
             <div className="flex gap-1.5 mb-3">
               {quickDates.map((qd) => (
@@ -181,8 +193,7 @@ export function DatePicker({ value, onChange, placeholder = 'Set due date' }: Da
                   key={qd.label}
                   onClick={() => { onChange(qd.date); setIsOpen(false); }}
                   className={`
-                    flex-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold
-                    transition-all duration-150
+                    flex-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-150
                     ${value === qd.date
                       ? 'bg-primary-500 text-white shadow-sm shadow-primary-500/20'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -228,12 +239,9 @@ export function DatePicker({ value, onChange, placeholder = 'Set due date' }: Da
 
             {/* Calendar Grid */}
             <div className="grid grid-cols-7 gap-0.5">
-              {/* Empty cells for offset */}
               {Array.from({ length: firstDay }, (_, i) => (
                 <div key={`empty-${i}`} />
               ))}
-
-              {/* Day cells */}
               {Array.from({ length: daysInMonth }, (_, i) => {
                 const day = i + 1;
                 const dateStr = toDateStr(viewYear, viewMonth, day);
@@ -247,8 +255,7 @@ export function DatePicker({ value, onChange, placeholder = 'Set due date' }: Da
                     onClick={() => selectDate(day)}
                     className={`
                       relative w-full aspect-square rounded-lg text-xs font-medium
-                      flex items-center justify-center
-                      transition-all duration-150
+                      flex items-center justify-center transition-all duration-150
                       ${isSelected
                         ? 'bg-gradient-to-br from-primary-500 to-accent-500 text-white shadow-sm shadow-primary-500/25'
                         : isTodayDate
@@ -284,8 +291,46 @@ export function DatePicker({ value, onChange, placeholder = 'Set due date' }: Da
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      )
+    : null;
+
+  return (
+    <div className="relative inline-block">
+      {/* Trigger Button */}
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+        className={`
+          inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium
+          transition-all duration-200
+          ${value
+            ? `${dateInfo?.color} bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-800`
+            : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60'
+          }
+        `}
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        {value ? dateInfo?.label : placeholder}
+        {value && (
+          <span
+            role="button"
+            onClick={clearDate}
+            className="ml-0.5 p-0.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            aria-label="Clear date"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </span>
+        )}
+      </button>
+
+      {calendarDropdown}
     </div>
   );
 }

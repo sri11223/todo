@@ -1,7 +1,7 @@
-import { useCallback, useMemo } from 'react';
-import type { Todo, FilterType } from '@/types';
+import { useCallback, useMemo, useEffect } from 'react';
+import type { Todo, FilterType, Priority } from '@/types';
 import { useLocalStorage } from './useLocalStorage';
-import { todoReducer, filterTodos, getActiveCount, getCompletedCount } from '@/utils/todoUtils';
+import { todoReducer, filterTodos, getActiveCount, getCompletedCount, getDefaultTodos } from '@/utils/todoUtils';
 import { STORAGE_KEYS } from '@/constants';
 
 /**
@@ -13,6 +13,19 @@ export function useTodos() {
   const [todos, setTodos] = useLocalStorage<Todo[]>(STORAGE_KEYS.TODOS, []);
   const [filter, setFilter] = useLocalStorage<FilterType>('todo-app:filter', 'all');
 
+  // ─── Seed mock data on first launch ─────────────────────────────────────
+  useEffect(() => {
+    setTodos((prev) => {
+      if (prev.length === 0) return getDefaultTodos();
+      // Migrate old todos that lack the priority field
+      const needsMigration = prev.some((t) => t.priority === undefined);
+      if (needsMigration) {
+        return prev.map((t) => (t.priority === undefined ? { ...t, priority: 'none' as Priority } : t));
+      }
+      return prev;
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ─── Dispatch helper (reduces boilerplate) ──────────────────────────────
   const dispatch = useCallback(
     (action: Parameters<typeof todoReducer>[1]) => {
@@ -23,9 +36,9 @@ export function useTodos() {
 
   // ─── Actions ────────────────────────────────────────────────────────────
   const addTodo = useCallback(
-    (text: string, dueDate: string | null = null) => {
+    (text: string, dueDate: string | null = null, priority: Priority = 'none') => {
       if (!text.trim()) return;
-      dispatch({ type: 'ADD_TODO', payload: { text, dueDate } });
+      dispatch({ type: 'ADD_TODO', payload: { text, dueDate, priority } });
     },
     [dispatch]
   );
@@ -55,6 +68,13 @@ export function useTodos() {
     [dispatch]
   );
 
+  const setPriority = useCallback(
+    (id: string, priority: Priority) => {
+      dispatch({ type: 'SET_PRIORITY', payload: { id, priority } });
+    },
+    [dispatch]
+  );
+
   const clearCompleted = useCallback(
     () => dispatch({ type: 'CLEAR_COMPLETED' }),
     [dispatch]
@@ -80,6 +100,7 @@ export function useTodos() {
     deleteTodo,
     editTodo,
     setDueDate,
+    setPriority,
     clearCompleted,
     setFilter,
   };

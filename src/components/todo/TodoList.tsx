@@ -1,4 +1,4 @@
-import type { Todo } from '@/types';
+import type { Todo, Priority } from '@/types';
 import { TodoItem } from './TodoItem';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -9,11 +9,12 @@ interface TodoListProps {
   onDelete: (id: string) => void;
   onEdit: (id: string, text: string) => void;
   onSetDueDate: (id: string, dueDate: string | null) => void;
+  onSetPriority: (id: string, priority: Priority) => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────────
 
-export function TodoList({ todos, onToggle, onDelete, onEdit, onSetDueDate }: TodoListProps) {
+export function TodoList({ todos, onToggle, onDelete, onEdit, onSetDueDate, onSetPriority }: TodoListProps) {
   if (todos.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
@@ -61,6 +62,7 @@ export function TodoList({ todos, onToggle, onDelete, onEdit, onSetDueDate }: To
           onDelete={onDelete}
           onEdit={onEdit}
           onSetDueDate={onSetDueDate}
+          onSetPriority={onSetPriority}
         />
       ))}
     </ul>

@@ -98,12 +98,12 @@
 
 @layer components {
   .todo-item-hover {
-    @apply relative overflow-hidden;
+    @apply relative;
   }
 
   .todo-item-hover::before {
     content: '';
-    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300 pointer-events-none;
     background: linear-gradient(135deg, rgba(14,165,233,0.03), rgba(217,70,239,0.03));
   }
 
