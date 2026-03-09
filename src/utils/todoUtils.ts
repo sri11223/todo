@@ -8,11 +8,12 @@ export const generateId = (): string => {
 
 // ─── Todo Factory ────────────────────────────────────────────────────────────
 
-export const createTodo = (text: string): Todo => ({
+export const createTodo = (text: string, dueDate: string | null = null): Todo => ({
   id: generateId(),
   text: text.trim(),
   completed: false,
   createdAt: Date.now(),
+  dueDate,
 });
 
 // ─── Filtering ───────────────────────────────────────────────────────────────
@@ -42,7 +43,7 @@ export const getCompletedCount = (todos: Todo[]): number =>
 export const todoReducer = (state: Todo[], action: TodoAction): Todo[] => {
   switch (action.type) {
     case 'ADD_TODO':
-      return [createTodo(action.payload.text), ...state];
+      return [createTodo(action.payload.text, action.payload.dueDate), ...state];
 
     case 'TOGGLE_TODO':
       return state.map((todo) =>
@@ -58,6 +59,13 @@ export const todoReducer = (state: Todo[], action: TodoAction): Todo[] => {
       return state.map((todo) =>
         todo.id === action.payload.id
           ? { ...todo, text: action.payload.text.trim() }
+          : todo
+      );
+
+    case 'SET_DUE_DATE':
+      return state.map((todo) =>
+        todo.id === action.payload.id
+          ? { ...todo, dueDate: action.payload.dueDate }
           : todo
       );
 

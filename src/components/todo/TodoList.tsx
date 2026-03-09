@@ -8,11 +8,12 @@ interface TodoListProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, text: string) => void;
+  onSetDueDate: (id: string, dueDate: string | null) => void;
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Component ───────────────────────────────────────────────────────────────────
 
-export function TodoList({ todos, onToggle, onDelete, onEdit }: TodoListProps) {
+export function TodoList({ todos, onToggle, onDelete, onEdit, onSetDueDate }: TodoListProps) {
   if (todos.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
@@ -59,6 +60,7 @@ export function TodoList({ todos, onToggle, onDelete, onEdit }: TodoListProps) {
           onToggle={onToggle}
           onDelete={onDelete}
           onEdit={onEdit}
+          onSetDueDate={onSetDueDate}
         />
       ))}
     </ul>

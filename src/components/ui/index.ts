@@ -2,3 +2,4 @@ export { Button } from './Button';
 export { Input } from './Input';
 export { Checkbox } from './Checkbox';
 export { Badge } from './Badge';
+export { DatePicker, getRelativeDateLabel } from './DatePicker';

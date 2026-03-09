@@ -1,16 +1,18 @@
 import { useState, useRef, useCallback, type KeyboardEvent } from 'react';
 import { MAX_TODO_LENGTH } from '@/constants';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
 interface TodoInputProps {
-  onAdd: (text: string) => void;
+  onAdd: (text: string, dueDate: string | null) => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function TodoInput({ onAdd }: TodoInputProps) {
   const [text, setText] = useState('');
+  const [dueDate, setDueDate] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -27,11 +29,12 @@ export function TodoInput({ onAdd }: TodoInputProps) {
       setError(validationError);
       return;
     }
-    onAdd(text);
+    onAdd(text, dueDate);
     setText('');
+    setDueDate(null);
     setError('');
     inputRef.current?.focus();
-  }, [text, onAdd]);
+  }, [text, dueDate, onAdd]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -101,6 +104,9 @@ export function TodoInput({ onAdd }: TodoInputProps) {
             {text.length}/{MAX_TODO_LENGTH}
           </span>
         )}
+
+        {/* Date Picker */}
+        <DatePicker value={dueDate} onChange={setDueDate} placeholder="Due date" />
 
         {/* Add button */}
         <button

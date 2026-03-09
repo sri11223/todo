@@ -4,3 +4,4 @@ export { TodoItem } from './TodoItem';
 export { TodoInput } from './TodoInput';
 export { TodoFilters } from './TodoFilters';
 export { TodoStats } from './TodoStats';
+export { TodoTimeline } from './TodoTimeline';

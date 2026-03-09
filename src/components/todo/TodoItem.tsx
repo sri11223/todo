@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent, memo } from 'react';
 import type { Todo } from '@/types';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -8,6 +9,7 @@ interface TodoItemProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, text: string) => void;
+  onSetDueDate: (id: string, dueDate: string | null) => void;
 }
 
 // ─── Component (memoized for list performance) ───────────────────────────────
@@ -17,6 +19,7 @@ export const TodoItem = memo(function TodoItem({
   onToggle,
   onDelete,
   onEdit,
+  onSetDueDate,
 }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(todo.text);
@@ -131,10 +134,14 @@ export const TodoItem = memo(function TodoItem({
         </span>
       )}
 
-      {/* Date */}
-      <span className="hidden sm:block text-[10px] font-mono text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
-        {new Date(todo.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-      </span>
+      {/* Due Date */}
+      <div className="flex-shrink-0">
+        <DatePicker
+          value={todo.dueDate}
+          onChange={(date) => onSetDueDate(todo.id, date)}
+          placeholder="Due"
+        />
+      </div>
 
       {/* Actions (visible on hover) */}
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200">

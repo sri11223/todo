@@ -23,9 +23,9 @@ export function useTodos() {
 
   // ─── Actions ────────────────────────────────────────────────────────────
   const addTodo = useCallback(
-    (text: string) => {
+    (text: string, dueDate: string | null = null) => {
       if (!text.trim()) return;
-      dispatch({ type: 'ADD_TODO', payload: { text } });
+      dispatch({ type: 'ADD_TODO', payload: { text, dueDate } });
     },
     [dispatch]
   );
@@ -44,6 +44,13 @@ export function useTodos() {
     (id: string, text: string) => {
       if (!text.trim()) return;
       dispatch({ type: 'EDIT_TODO', payload: { id, text } });
+    },
+    [dispatch]
+  );
+
+  const setDueDate = useCallback(
+    (id: string, dueDate: string | null) => {
+      dispatch({ type: 'SET_DUE_DATE', payload: { id, dueDate } });
     },
     [dispatch]
   );
@@ -72,6 +79,7 @@ export function useTodos() {
     toggleTodo,
     deleteTodo,
     editTodo,
+    setDueDate,
     clearCompleted,
     setFilter,
   };

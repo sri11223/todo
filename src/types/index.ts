@@ -1,1 +1,1 @@
-export type { Todo, FilterType, TodoAction, Theme, ThemeContextValue } from './todo';
+export type { Todo, FilterType, ViewMode, TodoAction, Theme, ThemeContextValue } from './todo';

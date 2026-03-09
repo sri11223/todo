@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import { useTodos } from '@/hooks';
 import { TodoInput } from './TodoInput';
 import { TodoList } from './TodoList';
 import { TodoFilters } from './TodoFilters';
 import { TodoStats } from './TodoStats';
+import { TodoTimeline } from './TodoTimeline';
+import type { ViewMode } from '@/types';
 
 // ─── Container Component ─────────────────────────────────────────────────────
 
 export function TodoApp() {
   const {
+    todos,
     filteredTodos,
     filter,
     activeCount,
@@ -17,9 +21,12 @@ export function TodoApp() {
     toggleTodo,
     deleteTodo,
     editTodo,
+    setDueDate,
     clearCompleted,
     setFilter,
   } = useTodos();
+
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
@@ -74,25 +81,75 @@ export function TodoApp() {
           <TodoInput onAdd={addTodo} />
         </div>
 
-        {/* Divider with filters */}
-        <div className="px-4 sm:px-6 pb-4">
-          <TodoFilters
-            currentFilter={filter}
-            onFilterChange={setFilter}
-            activeCount={activeCount}
-            completedCount={completedCount}
-            totalCount={totalCount}
-          />
+        {/* View Toggle + Filters */}
+        <div className="px-4 sm:px-6 pb-4 flex flex-col sm:flex-row gap-3">
+          {/* View Mode Toggle */}
+          <div className="flex gap-1 p-1 bg-gray-100/60 dark:bg-gray-800/40 rounded-xl shrink-0">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`
+                flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200
+                ${viewMode === 'list'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }
+              `}
+              aria-label="List view"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              List
+            </button>
+            <button
+              onClick={() => setViewMode('timeline')}
+              className={`
+                flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200
+                ${viewMode === 'timeline'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }
+              `}
+              aria-label="Timeline view"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Timeline
+            </button>
+          </div>
+
+          {/* Filters (only for list view) */}
+          {viewMode === 'list' && (
+            <div className="flex-1">
+              <TodoFilters
+                currentFilter={filter}
+                onFilterChange={setFilter}
+                activeCount={activeCount}
+                completedCount={completedCount}
+                totalCount={totalCount}
+              />
+            </div>
+          )}
         </div>
 
-        {/* List */}
+        {/* Content Area */}
         <div className="px-4 sm:px-6 pb-4 max-h-[32rem] overflow-y-auto scrollbar-thin">
-          <TodoList
-            todos={filteredTodos}
-            onToggle={toggleTodo}
-            onDelete={deleteTodo}
-            onEdit={editTodo}
-          />
+          {viewMode === 'list' ? (
+            <TodoList
+              todos={filteredTodos}
+              onToggle={toggleTodo}
+              onDelete={deleteTodo}
+              onEdit={editTodo}
+              onSetDueDate={setDueDate}
+            />
+          ) : (
+            <TodoTimeline
+              todos={todos}
+              onToggle={toggleTodo}
+              onDelete={deleteTodo}
+            />
+          )}
         </div>
 
         {/* Footer / Stats bar */}
