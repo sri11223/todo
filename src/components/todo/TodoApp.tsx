@@ -24,6 +24,7 @@ export function TodoApp() {
     setDueDate,
     setPriority,
     clearCompleted,
+    loadSampleData,
     setFilter,
   } = useTodos();
 
@@ -203,12 +204,14 @@ export function TodoApp() {
               onEdit={editTodo}
               onSetDueDate={setDueDate}
               onSetPriority={setPriority}
+              onLoadSampleData={loadSampleData}
             />
           ) : (
             <TodoTimeline
               todos={timelineTodos}
               onToggle={toggleTodo}
               onDelete={deleteTodo}
+              onLoadSampleData={loadSampleData}
             />
           )}
         </div>

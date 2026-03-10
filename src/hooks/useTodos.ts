@@ -13,11 +13,9 @@ export function useTodos() {
   const [todos, setTodos] = useLocalStorage<Todo[]>(STORAGE_KEYS.TODOS, []);
   const [filter, setFilter] = useLocalStorage<FilterType>('todo-app:filter', 'all');
 
-  // ─── Seed mock data on first launch ─────────────────────────────────────
+  // ─── Migrate old todos that lack the priority field ─────────────────────
   useEffect(() => {
     setTodos((prev) => {
-      if (prev.length === 0) return getDefaultTodos();
-      // Migrate old todos that lack the priority field
       const needsMigration = prev.some((t) => t.priority === undefined);
       if (needsMigration) {
         return prev.map((t) => (t.priority === undefined ? { ...t, priority: 'none' as Priority } : t));
@@ -80,6 +78,13 @@ export function useTodos() {
     [dispatch]
   );
 
+  const loadSampleData = useCallback(
+    () => {
+      setTodos((prev) => [...getDefaultTodos(), ...prev]);
+    },
+    [setTodos]
+  );
+
   // ─── Derived State (memoized) ───────────────────────────────────────────
   const filteredTodos = useMemo(() => filterTodos(todos, filter), [todos, filter]);
   const activeCount = useMemo(() => getActiveCount(todos), [todos]);
@@ -102,6 +107,7 @@ export function useTodos() {
     setDueDate,
     setPriority,
     clearCompleted,
+    loadSampleData,
     setFilter,
   };
 }
