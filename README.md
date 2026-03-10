@@ -180,6 +180,41 @@ The app is deployed on **Vercel** with zero configuration. Push to `main` trigge
 
 ---
 
+## Approach
+
+1. **Types first** — Defined domain models (`Todo`, `Priority`, `TodoAction` union) and action types before writing any components, ensuring type-safety throughout.
+2. **Pure utilities** — Built `todoReducer`, filtering, counting, and date helpers as pure, testable functions in `utils/todoUtils.ts`.
+3. **Custom hooks** — `useLocalStorage` (generic persistence with JSON serialization) and `useTodos` (all business logic in one hook with a reducer pattern).
+4. **Component tree** — Reusable UI primitives (`Button`, `Input`, `Checkbox`, `Badge`, `DatePicker`) composed into feature components (`TodoItem`, `TodoList`, `TodoTimeline`).
+5. **Styling** — Tailwind CSS with a custom color palette (primary/accent), glassmorphism utilities, animations, full dark mode, and responsive breakpoints.
+6. **Persistence** — `localStorage` for both todo data and user preferences (theme, filter). Migration logic auto-upgrades old data when the schema evolves.
+
+---
+
+## Time Spent
+
+~3 hours total:
+- ~30 min — Project setup, types, constants, utility functions
+- ~1 hr — Core components (TodoInput, TodoItem, TodoList, TodoFilters, TodoStats)
+- ~30 min — Dark mode, glassmorphism styling, animations
+- ~30 min — DatePicker, Timeline view, Priority system, Search
+- ~30 min — Bug fixes, README, final polish, deployment
+
+---
+
+## What I'd Improve With More Time
+
+- **Unit tests** — Vitest + React Testing Library for hooks, utils, and components
+- **E2E tests** — Playwright for full user-flow testing
+- **Drag & drop** — Reorder todos via drag handles
+- **Undo / Redo** — Action history stack for reversible operations
+- **PWA** — Service worker for offline-first experience
+- **Backend sync** — REST API or real-time sync with WebSocket
+- **Subtasks** — Nested task hierarchy with progress rollup
+- **Categories / Tags** — Organize tasks with color-coded labels
+
+---
+
 ## License
 
 MIT
